@@ -1,6 +1,32 @@
-<h2>Signup</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Register</button>
-</form>
+{% extends "base.html" %}
+{% block title %}Signup{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 400px;">
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <h4 class="mb-3 text-center">📝 Create Account</h4>
+
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-success w-100">
+          Register
+        </button>
+      </form>
+
+      <div class="text-center mt-3">
+        <small>
+          Already have an account? 
+          <a href="{% url 'login' %}">Login</a>
+        </small>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
