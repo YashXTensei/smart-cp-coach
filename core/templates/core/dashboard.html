@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h2 class="mb-4">👋 Welcome, {{ user.username }}</h2>
+
+  {% if has_cf_handle %}
+    <div class="alert alert-success d-flex justify-content-between align-items-center">
+      <span>🔗 Connected: <strong>{{ profile.cf_handle }}</strong>
+        {% if profile.cf_rating %}
+          &nbsp;·&nbsp;
+          <strong style="color: {{ cf_color }}">
+            {{ profile.cf_rating }} ({{ profile.cf_rank }})
+          </strong>
+        {% endif %}
+      </span>
+      <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-success">Sync Now</a>
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      ⚠️ Codeforces handle not connected —
+      <a href="{% url 'profile' %}">go to Profile</a> and add your handle.
+    </div>
+  {% endif %}
+
+  {% if bell_count > 0 %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+      <span>🔔 <strong>{{ bell_count }} problems</strong> are ready for review!</span>
+      <a href="{% url 'problem_list' %}?tab=cf&sort=priority"
+         class="btn btn-sm btn-warning">View Review Queue</a>
+    </div>
+  {% endif %}
+
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <h3>{{ total }}</h3>
+          <p class="mb-0 text-muted">Total Problems</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center shadow-sm border-success">
+        <div class="card-body">
+          <h3 class="text-success">{{ solved }}</h3>
+          <p class="mb-0 text-muted">Solved</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center shadow-sm border-warning">
+        <div class="card-body">
+          <h3 class="text-warning">{{ revision }}</h3>
+          <p class="mb-0 text-muted">Revision</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center shadow-sm border-danger">
+        <div class="card-body">
+          <h3 class="text-danger">{{ unsolved }}</h3>
+          <p class="mb-0 text-muted">Unsolved</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header fw-semibold">📊 Difficulty Breakdown</div>
+    <div class="card-body">
+      <div class="row text-center">
+        <div class="col">
+          <h4 class="text-success">{{ easy }}</h4>
+          <p class="text-muted mb-0">Easy</p>
+        </div>
+        <div class="col">
+          <h4 class="text-warning">{{ medium }}</h4>
+          <p class="text-muted mb-0">Medium</p>
+        </div>
+        <div class="col">
+          <h4 class="text-danger">{{ hard }}</h4>
+          <p class="text-muted mb-0">Hard</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header fw-semibold">⚠️ Weak Topics</div>
+    <div class="card-body">
+      {% if weak_topics %}
+        {% for topic, score in weak_topics %}
+          <span class="badge bg-danger me-2 mb-2 fs-6">
+            {{ topic }} ({{ score }} WA)
+          </span>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0">
+          {% if has_cf_handle %}
+            No struggle data yet — sync your submissions first.
+          {% else %}
+            Add your Codeforces handle to see weak topics.
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if today_focus %}
+  <div class="card mb-4 shadow-sm border-primary">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2"
+         style="background: linear-gradient(90deg, #0d6efd15, transparent);">
+      🎯 <span>Today's Focus</span>
+      <span class="badge bg-primary ms-auto" style="font-size: 0.7rem; font-weight: 500;">
+        Auto-generated
+      </span>
+    </div>
+    <div class="card-body">
+      <p class="mb-0" style="line-height: 1.7; font-size: 0.97rem;">
+        {{ today_focus }}
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mb-4 shadow-sm" id="ai-coach-card">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      🤖 <span>Ask AI Coach</span>
+      <span class="badge bg-secondary ms-auto" style="font-size: 0.7rem; font-weight: 500;">
+        Llama 3.1
+      </span>
+    </div>
+    <div class="card-body">
+
+      <p class="text-muted mb-2" style="font-size: 0.88rem;">
+        Ask a specific question — or leave blank for general advice.
+      </p>
+
+      <textarea
+        id="coach-question"
+        class="form-control mb-2"
+        rows="3"
+        placeholder="e.g. How should I approach DP problems? Or why do I keep failing Greedy?"
+        style="resize: none; font-size: 0.93rem;"
+      ></textarea>
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-outline-secondary btn-sm ai-btn" data-q="What should I do today?">
+          What should I do today?
+        </button>
+        <button class="btn btn-outline-secondary btn-sm ai-btn" data-q="Analyze my performance based on weak topics">
+          Analyze my performance
+        </button>
+        <button class="btn btn-outline-secondary btn-sm ai-btn" data-q="Suggest next problems for me">
+          Suggest next problems
+        </button>
+      </div>
+
+      <button class="btn btn-primary btn-sm px-4" id="ask-coach-btn">
+        Ask Coach
+      </button>
+
+      <div id="coach-response" class="mt-3" style="display: none;">
+        <hr class="my-2">
+        <div class="d-flex align-items-start gap-2">
+          <div style="font-size: 1.3rem; margin-top: 2px;">🤖</div>
+          <div class="bg-light border rounded p-3 w-100 shadow-sm"
+               style="line-height:1.7; border-left: 3px solid #0d6efd;">
+            <div class="text-muted small mb-1">AI Coach</div>
+            <div id="coach-response-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="coach-error" class="alert alert-danger mt-3 mb-0 py-2"
+           style="display: none; font-size: 0.88rem;">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        {% if has_cf_handle %}
+          <a href="?tab=cf"
+             class="btn btn-sm me-1 {% if active_tab == 'cf' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            Codeforces
+            <span class="badge ms-1 {% if active_tab == 'cf' %}bg-light text-dark{% else %}bg-secondary{% endif %}">
+              {{ cf_count }}
+            </span>
+          </a>
+        {% endif %}
+        <a href="?tab=manual"
+           class="btn btn-sm {% if active_tab == 'manual' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+          Manual
+          <span class="badge ms-1 {% if active_tab == 'manual' %}bg-light text-dark{% else %}bg-secondary{% endif %}">
+            {{ manual_count }}
+          </span>
+        </a>
+      </div>
+      <div>
+        {% if active_tab == 'manual' %}
+          <a href="{% url 'add_problem' %}" class="btn btn-sm btn-success me-1">+ Add Problem</a>
+        {% endif %}
+        <a href="{% url 'problem_list' %}?tab={{ active_tab }}"
+           class="btn btn-sm btn-outline-primary">View All →</a>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      {% if active_tab == 'cf' %}
+        {% if cf_problems %}
+          <ul class="list-group list-group-flush">
+            {% for up in cf_problems %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <a href="{{ up.problem.link }}" target="_blank" class="text-decoration-none">
+                    {{ up.problem.title }}
+                  </a>
+                  {% if up.review_priority > 30 %}
+                    <span title="Review recommended" class="ms-1">🔔</span>
+                  {% endif %}
+                  {% if up.wrong_attempts > 0 %}
+                    <small class="text-danger ms-2">⚠️ {{ up.wrong_attempts }} WA</small>
+                  {% endif %}
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary">{{ up.problem.difficulty }}</span>
+                  <small class="text-muted">{{ up.last_practiced|date:"d M Y" }}</small>
+                  <a href="{% url 'edit_problem' up.pk %}"
+                     class="btn btn-sm btn-outline-secondary py-0 px-2">✏️</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+          <div class="text-center py-2 border-top">
+            <a href="{% url 'problem_list' %}?tab=cf" class="text-muted small">
+              View all {{ cf_count }} Codeforces problems →
+            </a>
+          </div>
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            No Codeforces problems found — <a href="{% url 'profile' %}">sync your submissions!</a>
+          </div>
+        {% endif %}
+
+      {% else %}
+        {% if manual_problems %}
+          <ul class="list-group list-group-flush">
+            {% for up in manual_problems %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="fw-semibold">{{ up.problem.title }}</span>
+                  <small class="text-muted ms-2">{{ up.status }}</small>
+                  {% for topic in up.problem.topics.all %}
+                    <span class="badge bg-light text-dark border ms-1" style="font-size:11px;">
+                      {{ topic.name }}
+                    </span>
+                  {% endfor %}
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary">{{ up.problem.difficulty }}</span>
+                  <a href="{% url 'edit_problem' up.pk %}"
+                     class="btn btn-sm btn-outline-secondary py-0 px-2">✏️</a>
+                  <a href="{% url 'delete_problem' up.pk %}"
+                     class="btn btn-sm btn-outline-danger py-0 px-2"
+                     onclick="return confirm('Delete {{ up.problem.title }}?')">🗑️</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            No manual problems added yet.
+            <a href="{% url 'add_problem' %}">Add your first problem!</a>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btn = document.getElementById('ask-coach-btn');
+  if (!btn || window.coachListenerAdded) return;
+  window.coachListenerAdded = true;
+
+  function askCoach() {
+    const question = document.getElementById('coach-question').value.trim();
+    const responseDiv = document.getElementById('coach-response');
+    const responseText = document.getElementById('coach-response-text');
+
+    responseDiv.style.display = 'none';
+    responseText.textContent = '';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Thinking...';
+
+    fetch("{% url 'ask_coach' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({ question: question }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Server error: ' + res.status);
+        return res.json();
+      })
+      .then(data => {
+        if (data.response) {
+          responseText.textContent = data.response;
+          responseDiv.style.display = 'block';
+          showToast('AI Coach replied!', 'success');
+        } else {
+          throw new Error('Empty response');
+        }
+      })
+      .catch(() => {
+        showToast('Something went wrong — please try again.', 'danger');
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Ask Coach';
+      });
+  }
+
+  btn.addEventListener('click', askCoach);
+
+  document.querySelectorAll('.ai-btn').forEach(el => {
+    el.addEventListener('click', function () {
+      document.getElementById('coach-question').value = this.dataset.q;
+      askCoach();
+    });
+  });
+
+  document.getElementById('coach-question').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      askCoach();
+    }
+  });
+});
+</script>
+{% endblock %}

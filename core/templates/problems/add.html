@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Add Problem{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 650px;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+  <h2 class="mb-1">Add Problem Manually</h2>
+  <p class="text-muted mb-4">
+    Ye problems CF sync se alag rahenge — Manual tab mein dikhenge.
+  </p>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Problem Name</label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Rating <span class="text-muted fw-normal">(optional)</span></label>
+      {{ form.rating }}
+      {% if form.rating.errors %}
+        <div class="text-danger small mt-1">{{ form.rating.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Difficulty</label>
+      {{ form.difficulty }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Status</label>
+      {{ form.status }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">
+        Tags <span class="text-muted fw-normal">(optional, comma separated)</span>
+      </label>
+      {{ form.tags }}
+      <div class="form-text">e.g. dp, greedy, graphs</div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Notes</label>
+      {{ form.notes }}
+    </div>
+
+    <button type="submit" class="btn btn-success">Add Problem</button>
+    <a href="{% url 'problem_list' %}?tab=manual" class="btn btn-outline-secondary ms-2">Cancel</a>
+  </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

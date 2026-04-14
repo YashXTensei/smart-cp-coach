@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load url_tags %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <h2 class="mb-3">My Problems</h2>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <a href="?tab=cf"
+         class="btn btn-sm me-1 {% if active_tab == 'cf' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        Codeforces
+        <span class="badge ms-1 {% if active_tab == 'cf' %}bg-light text-dark{% else %}bg-secondary{% endif %}">
+          {{ cf_count }}
+        </span>
+      </a>
+      <a href="?tab=manual"
+         class="btn btn-sm {% if active_tab == 'manual' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        Manual
+        <span class="badge ms-1 {% if active_tab == 'manual' %}bg-light text-dark{% else %}bg-secondary{% endif %}">
+          {{ manual_count }}
+        </span>
+      </a>
+    </div>
+    {% if active_tab == 'manual' %}
+      <a href="{% url 'add_problem' %}" class="btn btn-sm btn-success">+ Add Problem</a>
+    {% endif %}
+  </div>
+
+  <form method="GET" class="row g-2 mb-3">
+    <input type="hidden" name="tab" value="{{ active_tab }}">
+    <div class="col-md-4">
+      <input type="text" name="search" class="form-control form-control-sm"
+             placeholder="Search problem..." value="{{ request.GET.search }}">
+    </div>
+    <div class="col-md-3">
+      <select name="difficulty" class="form-select form-select-sm">
+        <option value="">All Difficulties</option>
+        {% for value, label in difficulties %}
+          <option value="{{ value }}" {% if request.GET.difficulty == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All Status</option>
+        <option value="solved" {% if request.GET.status == "solved" %}selected{% endif %}>Solved</option>
+        <option value="unsolved" {% if request.GET.status == "unsolved" %}selected{% endif %}>Unsolved</option>
+        <option value="revision" {% if request.GET.status == "revision" %}selected{% endif %}>Revision</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="topic" class="form-select form-select-sm">
+        <option value="">All Topics</option>
+        {% for t in topics %}
+          <option value="{{ t.name }}" {% if selected_topic == t.name %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <input type="number" name="min_rating" class="form-control form-control-sm"
+             placeholder="Min rating" value="{{ min_rating }}" step="100" min="800" max="3500">
+    </div>
+    <div class="col-md-2">
+      <input type="number" name="max_rating" class="form-control form-control-sm"
+             placeholder="Max rating" value="{{ max_rating }}" step="100" min="800" max="3500">
+    </div>
+    <div class="col-md-2 d-flex gap-1">
+      <button type="submit" class="btn btn-sm btn-primary w-100">Apply</button>
+      <a href="?tab={{ active_tab }}" class="btn btn-sm btn-outline-secondary w-100">Clear</a>
+    </div>
+  </form>
+
+  {% for up in problems %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body py-2 d-flex justify-content-between align-items-center">
+        <div>
+          {% if up.problem.link %}
+            <a href="{{ up.problem.link }}" target="_blank"
+               class="fw-semibold text-decoration-none" style="font-size:20px;">
+              {{ up.problem.title }}
+            </a>
+          {% else %}
+            <span class="fw-semibold">{{ up.problem.title }}</span>
+          {% endif %}
+
+          {% if up.review_priority > 30 %}
+            <span title="Review recommended" class="ms-1">🔔</span>
+          {% endif %}
+
+          <small class="text-muted ms-2">{{ up.problem.platform.name }}</small>
+
+          {% if up.wrong_attempts > 0 %}
+            <small class="text-danger ms-2">⚠️ {{ up.wrong_attempts }} WA</small>
+          {% endif %}
+
+          {% if up.problem.topics.all %}
+            <div class="mt-1">
+              {% for topic in up.problem.topics.all %}
+                <span class="badge bg-light text-dark border me-1" style="font-size:12px;">
+                  {{ topic.name }}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center gap-2 text-nowrap">
+          {% if up.problem.rating %}
+            <span class="badge bg-secondary">{{ up.problem.rating }}</span>
+          {% endif %}
+          <span class="badge bg-secondary">{{ up.problem.difficulty }}</span>
+          <small class="text-muted">{{ up.last_practiced|date:"d M Y"|default:"—" }}</small>
+          <a href="{% url 'edit_problem' up.pk %}"
+             class="btn btn-sm btn-outline-secondary py-0 px-2">✏️</a>
+          {% if active_tab == 'manual' %}
+            <a href="{% url 'delete_problem' up.pk %}"
+               class="btn btn-sm btn-outline-danger py-0 px-2">🗑️</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="text-center text-muted mt-4">
+      {% if active_tab == 'manual' %}
+        No manual problems found. <a href="{% url 'add_problem' %}">Add one!</a>
+      {% else %}
+        No problems found. Try adjusting your filters or sync your submissions.
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+    {% if problems.has_previous %}
+      <a href="?{% url_replace page=problems.previous_page_number tab=active_tab %}"
+         class="btn btn-sm btn-outline-secondary">← Prev</a>
+    {% endif %}
+    <span class="text-muted small">
+      Page {{ problems.number }} of {{ problems.paginator.num_pages }}
+    </span>
+    {% if problems.has_next %}
+      <a href="?{% url_replace page=problems.next_page_number tab=active_tab %}"
+         class="btn btn-sm btn-outline-secondary">Next →</a>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

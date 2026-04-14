@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5" style="max-width: 500px;">
+  <div class="card shadow-sm border-danger">
+    <div class="card-body text-center">
+
+      <h5 class="text-danger mb-3">⚠️ Delete Problem</h5>
+
+      <p>
+        Are you sure you want to delete
+        <strong>{{ up.problem.title }}</strong>?
+      </p>
+
+      <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger px-4">Delete</button>
+        <a href="{% url 'problem_list' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
