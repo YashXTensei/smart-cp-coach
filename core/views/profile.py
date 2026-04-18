@@ -5,9 +5,9 @@ from django.utils import timezone
 from django.utils.timezone import make_aware
 from datetime import datetime
 from ..models import UserProblem, Platform, Problem, Topic, UserProfile
-from ..cf_api import validate_cf_handle, fetch_cf_submissions, fetch_cf_user_info, rating_to_difficulty
+from ..cf_api import validate_cf_handle, fetch_cf_submissions, fetch_cf_user_info, rating_to_difficulty , check_ce_submission
 from ..utils.priority import calculate_review_priority
-
+import time
 
 @login_required
 def profile_view(request):
@@ -21,8 +21,19 @@ def profile_view(request):
         elif action == "sync":
             _handle_sync(request, profile)
             return redirect("profile")
+        elif action == "start_verification":
+            _handle_start_verification(request, profile)
+            return redirect("profile")
+        elif action == "check_verification":
+            _handle_check_verification(request, profile)
+            return redirect("profile")
 
-    return render(request, "core/profile.html", {"profile": profile})
+    return render(request, "core/profile.html", {
+        "profile": profile,
+        "verification_active": bool(profile.verification_problem),
+        "verification_expires_at": profile.verification_expires_at,
+        "verification_problem_link": VERIFICATION_PROBLEM_LINK,
+    })
 
 
 def _handle_save(request, profile):
@@ -139,3 +150,51 @@ def _handle_sync(request, profile):
         request,
         f"Sync complete! {new_count} new problems added, {updated_count} updated."
     )
+
+
+VERIFICATION_PROBLEM = "4A"
+VERIFICATION_PROBLEM_LINK = "https://codeforces.com/problemset/problem/4/A"
+VERIFICATION_MINUTES = 2
+
+def _handle_start_verification(request, profile):
+    handle = request.POST.get("cf_handle", "").strip()
+    if not handle:
+        messages.error(request, "Handle cannot be empty.")
+        return
+
+    if not validate_cf_handle(handle):
+        messages.error(request, f"'{handle}' does not exist on Codeforces.")
+        return
+
+    profile.cf_handle = handle
+    profile.verification_problem = VERIFICATION_PROBLEM
+    profile.verification_expires_at = timezone.now() + timezone.timedelta(minutes=VERIFICATION_MINUTES)
+    profile.save()
+    messages.info(request, f"Submit a Compilation Error on Problem 4A within 2 minutes to verify!")
+
+
+def _handle_check_verification(request, profile):
+    if not profile.verification_expires_at:
+        messages.error(request, "No active verification. Please start again.")
+        return
+
+    if timezone.now() > profile.verification_expires_at:
+        messages.error(request, "Verification expired. Please try again.")
+        profile.verification_problem = ""
+        profile.verification_expires_at = None
+        profile.save()
+        return
+
+    after_timestamp = int(
+        (profile.verification_expires_at - timezone.timedelta(minutes=VERIFICATION_MINUTES)).timestamp()
+    )
+
+    found = check_ce_submission(profile.cf_handle, profile.verification_problem, after_timestamp)
+
+    if found:
+        profile.verification_problem = ""
+        profile.verification_expires_at = None
+        profile.save()
+        messages.success(request, f"Handle '{profile.cf_handle}' verified successfully! ✅")
+    else:
+        messages.error(request, "No Compilation Error found yet. Try submitting and check again.")

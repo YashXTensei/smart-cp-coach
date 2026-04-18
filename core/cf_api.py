@@ -99,6 +99,35 @@ def fetch_cf_submissions(handle, since_id=None):
     except Exception as e:
         return None, None, str(e)
 
+def check_ce_submission(handle, problem_code, after_timestamp):
+    """
+    Returns True if handle submitted CE on problem_code after after_timestamp.
+    problem_code format: '4A'
+    """
+    try:
+        resp = requests.get(
+            f"{CF_API_BASE}/user.status",
+            params={"handle": handle, "from": 1, "count": 20},
+            timeout=10
+        )
+        data = resp.json()
+        if data.get("status") != "OK":
+            return False
+
+        for sub in data["result"]:
+            p = sub["problem"]
+            code = f"{p.get('contestId')}{p.get('index')}"
+            verdict = sub.get("verdict")
+            sub_time = sub.get("creationTimeSeconds", 0)
+
+            if (code == problem_code and
+                verdict == "COMPILATION_ERROR" and
+                sub_time >= after_timestamp):
+                return True
+
+        return False
+    except Exception:
+        return False
 
 def rating_to_difficulty(rating):
     if rating is None:

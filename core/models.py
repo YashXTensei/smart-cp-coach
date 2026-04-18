@@ -79,6 +79,8 @@ class UserProfile(models.Model):
     last_cf_submission_id = models.BigIntegerField(null=True, blank=True)  
     cf_rating = models.IntegerField(null=True, blank=True)
     cf_rank = models.CharField(max_length=50, blank=True)
+    verification_problem = models.CharField(max_length=20, blank=True)
+    verification_expires_at = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.user.username} - {self.cf_handle or 'No CF Handle'}"

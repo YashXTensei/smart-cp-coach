@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from ..models import UserProblem, Platform, Problem, Topic
 from ..forms import ManualProblemForm, UserProblemForm
 from ..utils.priority import calculate_review_priority
-
+from django.urls import reverse
 
 @login_required
 def add_problem(request):
@@ -142,8 +142,6 @@ def delete_problem(request, pk):
     if up.problem.platform.slug != 'manual':
         messages.error(request, "Codeforces problems cannot be deleted — they are managed via sync.")
         return redirect('problem_list')
-    if request.method == 'POST':
-        up.delete()
-        messages.success(request, "Problem deleted successfully!")
-        return redirect('problem_list')
-    return render(request, 'problems/delete.html', {'up': up})
+    up.delete()
+    messages.success(request, "Problem deleted successfully!")
+    return redirect(reverse('problem_list') + '?tab=manual')

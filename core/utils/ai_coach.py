@@ -39,17 +39,20 @@ def get_ai_response(weak_topics, user_question=""):
 
     if user_question.strip():
         user_part = f"Student's question: {user_question.strip()}"
+        focus = "Answer the student's question directly and completely. Use weak topics only as background context, not as the main focus."
     else:
-        user_part = "Give a general improvement plan for today based on weak topics."
+        user_part = "Give a general improvement plan for today."
+        focus = "Base your advice on the student's weak topics."
 
-    prompt = f"""You are a competitive programming coach.
-
-Student's weakest topics:
-{topic_context}
+    prompt = f"""You are a competitive programming coach helping a student improve.
 
 {user_part}
 
-Reply in 3-4 sentences max. Be specific, mention topic names, suggest concrete steps.
+Background context — student's weak topics (use only if relevant):
+{topic_context}
+
+Instructions: {focus}
+Reply in 3-4 sentences. Be specific and actionable.
 Plain text only, no markdown, no bullet points."""
 
     try:

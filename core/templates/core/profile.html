@@ -6,31 +6,64 @@
 
   <h2 class="mb-4">⚙️ My Profile</h2>
 
-  <div class="card mb-4 shadow-sm">
-    <div class="card-header fw-semibold">🔗 Codeforces Handle</div>
-    <div class="card-body">
+ <div class="card mb-4 shadow-sm">
+  <div class="card-header fw-semibold">🔗 Codeforces Handle</div>
+  <div class="card-body">
+
+    {% if not verification_active %}
       <form method="post">
         {% csrf_token %}
-        <input type="hidden" name="action" value="save_handle">
+        <input type="hidden" name="action" value="start_verification">
         <div class="input-group">
           <span class="input-group-text">@</span>
           <input type="text" name="cf_handle" class="form-control"
                  placeholder="e.g. tourist" value="{{ profile.cf_handle }}">
-          <button type="submit" class="btn btn-primary">Save Handle</button>
+          <button type="submit" class="btn btn-primary">Verify Handle</button>
         </div>
-        <div class="form-text mt-1">Handle is validated against the Codeforces API on save.</div>
+        <div class="form-text mt-1">
+          You'll need to submit a Compilation Error on a specific problem to verify ownership.
+        </div>
       </form>
-    </div>
-  </div>
 
-  <div class="card mb-4 shadow-sm">
+    {% else %}
+      <div class="alert alert-info mb-3">
+        <strong>⏳ Verification in progress</strong><br>
+        Go to
+        <a href="{{ verification_problem_link }}" target="_blank" style = "text-decoration : none ;">
+          Codeforces Problem 4A
+        </a>
+        and submit any code that gives a <strong>Compilation Error</strong>.<br>
+        <small class="text-muted">
+          Expires at: {{ verification_expires_at|date:"H:i:s" }}
+        </small>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="check_verification">
+        <button type="submit" class="btn btn-success">
+          ✅ I've submitted — Check Now
+        </button>
+      </form>
+
+      <form method="post" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="start_verification">
+        <input type="hidden" name="cf_handle" value="{{ profile.cf_handle }}">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          Restart Verification
+        </button>
+      </form>
+    {% endif %}
+    <div class="card mb-4 shadow-sm">
     <div class="card-header fw-semibold">🔄 Sync Submissions</div>
     <div class="card-body">
-      {% if profile.cf_handle %}
+      {% if profile.cf_handle and not verification_active %}
         <p class="mb-2">
           Connected as: <strong>{{ profile.cf_handle }}</strong>
           {% if profile.last_synced %}
-            &nbsp;·&nbsp; Last synced: <span class="text-muted">{{ profile.last_synced|date:"d M Y, H:i" }}</span>
+            &nbsp;·&nbsp; Last synced:
+            <span class="text-muted">{{ profile.last_synced|date:"d M Y, H:i" }}</span>
           {% else %}
             &nbsp;·&nbsp; <span class="text-muted">Never synced</span>
           {% endif %}
@@ -44,10 +77,13 @@
           Fetches all accepted submissions from Codeforces. Problems and topics are added automatically.
         </div>
       {% else %}
-        <p class="text-muted mb-0">Save your Codeforces handle first to enable syncing.</p>
+        <p class="text-muted mb-0">Verify your Codeforces handle first to enable syncing.</p>
       {% endif %}
     </div>
   </div>
+
+  </div>
+</div>
 
   <div class="card shadow-sm">
     <div class="card-header fw-semibold">👤 Account</div>
